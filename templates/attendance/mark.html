@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+
+{% block title %}Mark Attendance - {{ unit.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{% url 'student_profile' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Return to Profile
+            </a>
+            <a href="{% url 'enrolled_units' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-list"></i> My Units
+            </a>
+        </div>
+            <!-- Header -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">
+                        <i class="fas fa-camera"></i> Mark Attendance
+                    </h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Please position your face in the camera frame and click "Capture" when ready.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Interface -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <!-- Video feed -->
+                    <div class="text-center mb-4">
+                        <video id="videoElement" class="img-fluid rounded" style="max-width: 100%; border: 2px solid #ddd;"></video>
+                        <canvas id="canvasElement" style="display: none;"></canvas>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="d-grid gap-2">
+                        <button id="captureBtn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button id="retakeBtn" class="btn btn-secondary btn-lg" style="display: none;">
+                            <i class="fas fa-redo"></i> Retake
+                        </button>
+                    </div>
+
+                    <!-- Status messages -->
+                    <div id="statusMessage" class="alert mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .btn {
+        padding: 12px 20px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-primary {
+        background-color: #3399ff;
+        border-color: #3399ff;
+    }
+
+    .btn-primary:hover {
+        background-color: #0066cc;
+        border-color: #0066cc;
+    }
+
+    #videoElement {
+        width: 100%;
+        max-width: 640px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .alert {
+        border-radius: 8px;
+    }
+
+    /* Loading spinner */
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvasElement');
+    const captureBtn = document.getElementById('captureBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const statusMessage = document.getElementById('statusMessage');
+    let stream = null;
+
+    // Start video stream
+    async function startVideo() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: "user"
+                }
+            });
+            video.srcObject = stream;
+            video.play();
+            captureBtn.style.display = 'block';
+            retakeBtn.style.display = 'none';
+        } catch (err) {
+            showStatus('Error accessing camera: ' + err.message, 'danger');
+        }
+    }
+
+    // Initialize camera
+    startVideo();
+
+    // Capture photo
+    // Modify the fetch call in your template
+captureBtn.addEventListener('click', async function() {
+    try {
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw video frame to canvas
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        // Convert canvas to base64 and remove the data:image/jpeg;base64, prefix
+        const imageData = canvas.toDataURL('image/jpeg').split(',')[1];
+        
+        // Stop video stream
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        video.style.display = 'none';
+        canvas.style.display = 'block';
+        captureBtn.style.display = 'none';
+        retakeBtn.style.display = 'block';
+
+        // Show loading state
+        showStatus('Processing...', 'info');
+        
+        // Create FormData object
+        const formData = new FormData();
+        formData.append('face_data', imageData);
+
+        // Send to server
+        const response = await fetch('{% url "mark_attendance" unit_id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.status || 'Server error occurred');
+        }
+
+        showStatus(data.status, data.status.includes('successfully') ? 'success' : 'warning');
+
+    } catch (error) {
+        console.error('Error:', error);
+        showStatus('Error: ' + (error.message || 'Unknown error occurred'), 'danger');
+        // Re-enable capture button on error
+        video.style.display = 'block';
+        canvas.style.display = 'none';
+        captureBtn.style.display = 'block';
+        retakeBtn.style.display = 'none';
+    }
+});
+
+    // Retake photo
+    retakeBtn.addEventListener('click', function() {
+        canvas.style.display = 'none';
+        video.style.display = 'block';
+        statusMessage.style.display = 'none';
+        startVideo();
+    });
+
+    // Helper function to show status messages
+    function showStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = 'alert mt-3 alert-' + type;
+        statusMessage.style.display = 'block';
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

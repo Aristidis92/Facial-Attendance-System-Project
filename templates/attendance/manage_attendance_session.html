@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-book-reader"></i> {{ unit.name }}
+        </h2>
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{% url 'update_session_records' %}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Update Sessions
+        </a>
+    </div>
+
+    <!-- Unit Information Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title">Unit Information</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Unit Code:</strong> {{ unit.name }}</p>
+                    <p><strong>Unit Code:</strong> {{ unit.code }}</p>
+                    <p><strong>Description:</strong> {{ unit.description }}</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="display-4 me-3">{{ enrolled_count }}</div>
+                        <div class="text-muted">
+                            Students<br>Enrolled
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enrolled Students Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-users"></i> Enrolled Students
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if enrolled_students %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Registration Number</th>
+                                <th>Name</th>
+                                <th>Enrollment Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for enrollment in enrolled_students %}
+                            <tr>
+                                <td>{{ enrollment.student.student_id }}</td>
+                                <td>{{ enrollment.student.user.username }}</td>
+                                <td>{{ enrollment.enrolled_at|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if enrollment.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No students enrolled in this unit yet.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attendance Session Card -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if active_session %}
+                <!-- Active Session Information -->
+                <div class="alert alert-success">
+                    <i class="fas fa-circle"></i> Attendance session is currently active
+                    <small class="d-block text-muted mt-1">Started at: {{ active_session.created_at|date:"F d, Y h:i A" }}</small>
+                </div>
+
+                {% if attendance %}
+                    <!-- Attendance Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ attendance.present }}</h3>
+                                    <small class="text-muted">Students Present</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ attendance.total }}</h3>
+                                    <small class="text-muted">Total Students</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ attendance.percentage }}%</h3>
+                                    <small class="text-muted">Attendance Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- End Session Button -->
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    <button type="submit" name="end_session" class="btn btn-danger btn-lg" 
+                            onclick="return confirm('Are you sure you want to end this attendance session?')">
+                        <i class="fas fa-stop-circle"></i> End Attendance Session
+                    </button>
+                </form>
+            {% else %}
+                <!-- No Active Session -->
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No active attendance session for this unit
+                </div>
+
+                <!-- Start Session Button -->
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" name="start_session" class="btn btn-primary btn-lg">
+                        <i class="fas fa-play-circle"></i> Start New Attendance Session
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    
+
+    {% if active_session %}
+        <!-- Export Options -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Export Options</h5>
+                
+            </div>
+        </div>
+    {% endif %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history"></i> Attendance History
+                </h5>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?filter=today">Today</a></li>
+                        <li><a class="dropdown-item" href="?filter=week">This Week</a></li>
+                        <li><a class="dropdown-item" href="?filter=month">This Month</a></li>
+                        <li><a class="dropdown-item" href="?filter=all">All Time</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Overall Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0">{{ total_sessions }}</h3>
+                            <small class="text-muted">Total Sessions</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0">{{ average_attendance }}%</h3>
+                            <small class="text-muted">Average Attendance</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0">{{ highest_attendance }}%</h3>
+                            <small class="text-muted">Highest Attendance</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0">{{ lowest_attendance }}%</h3>
+                            <small class="text-muted">Lowest Attendance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Sessions Table -->
+            {% if attendance_history %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Present</th>
+                                <th>Total</th>
+                                <th>Percentage</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in attendance_history %}
+                            <tr>
+                                <td>{{ session.created_at|date:"M d, Y" }}</td>
+                                <td>{{ session.created_at|time:"h:i A" }}</td>
+                                <td>{{ session.present_count }}</td>
+                                <td>{{ session.total_students }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if session.attendance_percentage >= 75 %}bg-success{% elif session.attendance_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" 
+                                             
+                                             aria-valuenow="{{ session.attendance_percentage }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ session.attendance_percentage }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if session.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Ended</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a href="{% url 'view_session_details' session.id %}" 
+                                           class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="{% url 'export_session_attendance' session.id %}" 
+                                           class="btn btn-sm btn-secondary">
+                                            <i class="fas fa-download"></i> Export
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if attendance_history.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if attendance_history.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ attendance_history.previous_page_number }}">Previous</a>
+                            </li>
+                        {% endif %}
+
+                        {% for i in attendance_history.paginator.page_range %}
+                            <li class="page-item {% if attendance_history.number == i %}active{% endif %}">
+                                <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                            </li>
+                        {% endfor %}
+
+                        {% if attendance_history.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ attendance_history.next_page_number }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No attendance history available.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    }
+
+    .display-4 {
+        font-size: 3rem;
+        font-weight: 300;
+        line-height: 1.2;
+    }
+
+    .btn-lg {
+        padding: 1rem 2rem;
+    }
+
+    .alert {
+        border-left: 4px solid;
+    }
+
+    .alert-success {
+        border-left-color: #28a745;
+    }
+
+    .alert-info {
+        border-left-color: #17a2b8;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+
+    .card .card-body {
+        padding: 1.5rem;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        border-top: none;
+        background-color: #f8f9fa;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+    }
+    .progress {
+        border-radius: 10px;
+        background-color: #f8f9fa;
+    }
+
+    .progress-bar {
+        border-radius: 10px;
+        transition: width 0.6s ease;
+    }
+
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>User Management</h2>
+
+<form method="get">
+  <label for="role">Filter by role:</label>
+  <select name="role" id="role" onchange="this.form.submit()">
+    <option value="">All</option>
+    <option value="student" {% if selected_role == 'student' %}selected{% endif %}>Students</option>
+    <option value="teacher" {% if selected_role == 'teacher' %}selected{% endif %}>Teachers</option>
+    <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Admins</option>
+  </select>
+</form>
+
+<table>
+  <thead>
+    <tr><th>Username</th><th>Email</th><th>Role</th></tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+    <tr>
+      <td>{{ user.username }}</td>
+      <td>{{ user.email }}</td>
+      <td>{{ user.role|capfirst }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a href="{% url 'edit_user' user.id %}">Edit</a>
+<a href="{% url 'delete_user' user.id %}">Delete</a>
+{% endblock %}

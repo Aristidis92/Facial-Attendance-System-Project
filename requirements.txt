@@ -1,0 +1,10 @@
+django
+djangorestframework
+channels
+opencv-python
+mtcnn
+facenet-pytorch
+torch
+torchvision
+numpy
+scikit-learn

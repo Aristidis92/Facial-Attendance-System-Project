@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Student Registration</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {% if form.errors %}
+  <div class="errorlist">
+    {% for field in form %}
+      {% for error in field.errors %}
+        <p><strong>{{ field.label }}:</strong> {{ error }}</p>
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+      <p><strong>Error:</strong> {{ error }}</p>
+    {% endfor %}
+  </div>
+{% endif %}
+
+  <input type="hidden" name="face_data" id="face_data">
+  <video id="video" width="320" height="240" autoplay></video>
+  <button type="button" onclick="capture()">Capture Face</button>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="preview" src="" alt="Face Preview" style="display:none; margin-top:10px;" width="160">
+  <br>
+  <button type="submit">Register</button>
+</form>
+
+
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const faceData = document.getElementById('face_data');
+
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => { video.srcObject = stream; });
+
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => { video.srcObject = stream; })
+    .catch(error => {
+  alert("❌ Cannot access your webcam. Please allow camera permission or try another browser.");
+  });
+
+  
+
+    function capture() {
+  const context = canvas.getContext('2d');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  context.drawImage(video, 0, 0);
+  const data = canvas.toDataURL('image/jpeg');
+  faceData.value = data;
+
+  // Show preview
+  const preview = document.getElementById('preview');
+  preview.src = data;
+  preview.style.display = 'block';
+
+  alert('✅ Face captured! Now you can submit the form.');
+
+}
+
+</script>
+{% endblock %}

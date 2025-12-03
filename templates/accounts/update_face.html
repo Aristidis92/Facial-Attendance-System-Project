@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Update Facial Details</h2>
+                </div>
+                <div class="card-body">
+                    <!-- Status Messages -->
+                    <div id="statusMessages" class="alert" style="display: none;"></div>
+                    
+                    {% if messages %}
+                    <div class="messages mb-3">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" id="faceUpdateForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="face_data" id="face_data">
+                        
+                        <!-- Video Preview -->
+                        <div class="text-center mb-4">
+                            <video id="video" width="480" height="360" autoplay playsinline 
+                                   style="border-radius: 8px; border: 2px solid #ddd; background-color: #f8f9fa;"></video>
+                        </div>
+
+                        <!-- Canvas for Capture -->
+                        <canvas id="canvas" style="display:none;"></canvas>
+                        
+                        <!-- Preview Image -->
+                        <div id="previewContainer" class="text-center mb-4" style="display:none;">
+                            <h5>Captured Image Preview</h5>
+                            <img id="preview" style="max-width: 480px; border-radius: 8px; border: 2px solid #ddd;">
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="text-center">
+                            <button type="button" id="captureBtn" class="btn btn-primary me-2" onclick="capture()">
+                                <i class="fas fa-camera"></i> Capture Face
+                            </button>
+                            <button type="button" id="retakeBtn" class="btn btn-secondary me-2" 
+                                    style="display:none;" onclick="retake()">
+                                <i class="fas fa-redo"></i> Retake
+                            </button>
+                            <button type="submit" id="submitBtn" class="btn btn-success" style="display:none;">
+                                <i class="fas fa-save"></i> Update Face
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Instructions -->
+                    <div class="mt-4">
+                        <h5>Instructions:</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item">
+                                <i class="fas fa-check-circle text-success"></i>
+                                Position your face in the center of the camera
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-check-circle text-success"></i>
+                                Ensure good lighting conditions
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-check-circle text-success"></i>
+                                Keep a neutral expression
+                            </li>
+                            <li class="list-group-item">
+                                <i class="fas fa-times-circle text-danger"></i>
+                                Avoid wearing sunglasses or hats
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const faceData = document.getElementById('face_data');
+    const preview = document.getElementById('preview');
+    const previewContainer = document.getElementById('previewContainer');
+    const captureBtn = document.getElementById('captureBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMessages = document.getElementById('statusMessages');
+    let stream = null;
+
+    // Show status message
+    function showStatus(message, type = 'info') {
+        statusMessages.className = `alert alert-${type}`;
+        statusMessages.textContent = message;
+        statusMessages.style.display = 'block';
+        setTimeout(() => {
+            statusMessages.style.display = 'none';
+        }, 3000);
+    }
+
+    // Initialize webcam
+    async function initializeWebcam() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    width: 480,
+                    height: 360,
+                    facingMode: 'user'
+                }
+            });
+            video.srcObject = stream;
+            showStatus('Camera initialized successfully', 'success');
+        } catch (err) {
+            console.error('Error accessing webcam:', err);
+            showStatus('Error accessing camera. Please check permissions.', 'danger');
+        }
+    }
+
+    initializeWebcam();
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+});
+
+function capture() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const preview = document.getElementById('preview');
+    const faceData = document.getElementById('face_data');
+    
+    // Set canvas dimensions
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Capture frame
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0);
+    
+    // Convert to base64 and save
+    const data = canvas.toDataURL('image/jpeg');
+    faceData.value = data;
+    
+    // Show preview
+    preview.src = data;
+    video.style.display = 'none';
+    previewContainer.style.display = 'block';
+    captureBtn.style.display = 'none';
+    retakeBtn.style.display = 'inline-block';
+    submitBtn.style.display = 'inline-block';
+    
+    showStatus('Face captured successfully! You can now submit or retake.', 'success');
+}
+
+function retake() {
+    const video = document.getElementById('video');
+    const faceData = document.getElementById('face_data');
+    
+    // Reset form
+    faceData.value = '';
+    video.style.display = 'block';
+    previewContainer.style.display = 'none';
+    captureBtn.style.display = 'inline-block';
+    retakeBtn.style.display = 'none';
+    submitBtn.style.display = 'none';
+}
+
+// Form validation
+document.getElementById('faceUpdateForm').addEventListener('submit', function(e) {
+    if (!document.getElementById('face_data').value) {
+        e.preventDefault();
+        showStatus('Please capture your face image first!', 'warning');
+    }
+});
+
+function showStatus(message, type = 'info') {
+    const statusMessages = document.getElementById('statusMessages');
+    statusMessages.className = `alert alert-${type}`;
+    statusMessages.textContent = message;
+    statusMessages.style.display = 'block';
+    setTimeout(() => {
+        statusMessages.style.display = 'none';
+    }, 3000);
+}
+</script>
+{% endblock %}

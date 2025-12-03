@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-user-circle"></i> 
+            Welcome, {{ request.user.username }}!
+        </h2>
+        <a href="{% url 'export_attendance_csv' %}" class="btn btn-success">
+            <i class="fas fa-file-download"></i> Export All Attendance
+        </a>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-book"></i> Total Units</h5>
+                    <h2 class="mb-0">{{ unit_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-users"></i> Total Students</h5>
+                    <h2 class="mb-0">{{ student_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-clipboard-check"></i> Total Attendance</h5>
+                    <h2 class="mb-0">{{ attendance_count }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Units Section -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-book-reader"></i> Your Units
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="units-list">
+                {% for unit in units %}
+                <div class="unit-item mb-4 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4 class="mb-1">{{ unit.name }} <span class="text-muted">({{ unit.code }})</span></h4>
+                            <p class="text-muted mb-2">{{ unit.description }}</p>
+                        </div>
+                        <div class="text-end">
+                          {% if unit.has_active_session %}
+                          <a href="{% url 'manage_attendance_session' unit.id %}" 
+                             class="btn btn-success btn-sm">
+                              <i class="fas fa-cogs"></i> Manage Attendance
+                          </a>
+                      {% else %}
+                          <a href="{% url 'manage_attendance_session' unit.id %}" 
+                             class="btn btn-primary btn-sm">
+                              <i class="fas fa-play-circle"></i> Start Attendance
+                          </a>
+                      {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No units assigned yet.
+                </div>
+                {% endfor %}
+            </div>
+            d
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: all 0.3s ease;
+        border: none;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    }
+    
+    .unit-item {
+        transition: all 0.2s ease;
+        background-color: #fff;
+    }
+    
+    .unit-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .session-status .badge {
+        font-weight: 500;
+        padding: 0.5em 1em;
+    }
+    
+    .session-status .fas {
+        font-size: 0.8em;
+        margin-right: 0.5em;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .text-end {
+            text-align: left !important;
+            margin-top: 1rem;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirm before ending session
+    document.querySelectorAll('.end-session').forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (!confirm('Are you sure you want to end this attendance session?')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

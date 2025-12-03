@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-clipboard-list"></i> Attendance Session Details
+        </h2>
+        <a href="{% url 'manage_attendance_session' session.unit.id %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Unit
+        </a>
+    </div>
+
+    <!-- Session Information Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">Session Information</h5>
+                    <p><strong>Unit:</strong> {{ session.unit.name }} ({{ session.unit.code }})</p>
+                    <p><strong>Date:</strong> {{ session.created_at|date:"F d, Y" }}</p>
+                    <p><strong>Time:</strong> {{ session.created_at|time:"h:i A" }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if session.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Ended</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="card-title">Attendance Summary</h5>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 border rounded bg-light">
+                                <h3 class="mb-0">{{ present_students }}</h3>
+                                <small class="text-muted">Present</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 border rounded bg-light">
+                                <h3 class="mb-0">{{ absent_students }}</h3>
+                                <small class="text-muted">Absent</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-3 border rounded bg-light">
+                                <h3 class="mb-0">{{ attendance_percentage }}%</h3>
+                                <small class="text-muted">Attendance Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-users"></i> Student Attendance
+                </h5>
+                <a href="{% url 'export_session_attendance' session.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-download"></i> Export
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td>{{ record.student.student_id }}</td>
+                            <td>{{ record.student.user.get_full_name }}</td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                    <span class="badge bg-success">Present</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Absent</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ record.date|time:"h:i A" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+    }
+
+    .table th {
+        border-top: none;
+        background-color: #f8f9fa;
+    }
+
+    .border {
+        border-color: #dee2e6 !important;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+    }
+</style>
+{% endblock %}

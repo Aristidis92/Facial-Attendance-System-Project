@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Update Attendance Records</h2>
+        <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if sessions_data %}
+        {% for session_data in sessions_data %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ session_data.session.unit.name }}</h5>
+                    <small class="text-muted">
+                        Started: {{ session_data.session.created_at|date:"F d, Y H:i" }}
+                    </small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Attendance Summary</h6>
+                                <p class="mb-0">
+                                    Present: {{ session_data.present_count }} / {{ session_data.total_students }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" id="attendance-form-{{ session_data.session.id }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="session_id" value="{{ session_data.session.id }}">
+                    <input type="hidden" name="status" id="status-input-{{ session_data.session.id }}" value="">
+                    <input type="hidden" name="student_id" id="student-input-{{ session_data.session.id }}" value="">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Current Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student_data in session_data.students %}
+                                <tr>
+                                    <td>{{ student_data.student.student_id }}</td>
+                                    <td>{{ student_data.student.user.get_full_name }}</td>
+                                    <td>
+                                        <span class="badge {% if student_data.marked_present %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ student_data.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-success"
+                                                    onclick="submitAttendance('{{ session_data.session.id }}', '{{ student_data.student.id }}', 'present')">
+                                                <i class="fas fa-check"></i> Present
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-danger"
+                                                    onclick="submitAttendance('{{ session_data.session.id }}', '{{ student_data.student.id }}', 'absent')">
+                                                <i class="fas fa-times"></i> Absent
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No active sessions found.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function submitAttendance(sessionId, studentId, status) {
+    // Get the form elements
+    const form = document.getElementById(`attendance-form-${sessionId}`);
+    const statusInput = document.getElementById(`status-input-${sessionId}`);
+    const studentInput = document.getElementById(`student-input-${sessionId}`);
+    
+    // Set the values
+    statusInput.value = status;
+    studentInput.value = studentId;
+    
+    // Submit the form
+    form.submit();
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    }
+
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}

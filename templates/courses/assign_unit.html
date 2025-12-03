@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>{{ title }}</h1>
+
+    {% if units %}
+        <form method="POST">
+            {% csrf_token %}
+            <label for="unit">Select Unit to Teach:</label>
+            <select name="unit_id" id="unit">
+                <option value="">--Choose a unit--</option>
+                {% for unit in units %}
+                    <option value="{{ unit.id }}">{{ unit.name }} ({{ unit.code }})</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">Assign Unit</button>
+        </form>
+    {% else %}
+        <p>No units available to assign.</p>
+    {% endif %}
+</body>
+</html>
